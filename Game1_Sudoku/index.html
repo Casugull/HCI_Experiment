@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>HCI Experiment - 游戏名字</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 调用外层公共库 -->
+    <link href="../shared_assets/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- 调用自己文件夹的样式 -->
+    <link href="css/styles.css" rel="stylesheet" />
+</head>
+<body>
+    <div id="app-wrap" style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 40px; align-items: center; min-height: 100vh; padding-bottom: 12vh; box-sizing: border-box; width: 100%; max-width: 1400px; margin: 0 auto;">
+
+        <!-- 左侧排版 -->
+        <div style="grid-column: 1; justify-self: end; max-width: 360px; text-align: left;">
+            <h1 style="margin: 0 0 10px 0; color: #2c3e50; font-weight: 800; font-size: 2.2rem; letter-spacing: 1px;">数独 (Sudoku)</h1>
+            <!-- 难度徽章 -->
+            <div id="level-indicator" style="display: inline-block; padding: 6px 16px; background: #e0f7fa; color: #00838f; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 30px;"></div>
+
+            <div style="margin-bottom: 25px;">
+                <div style="font-size: 16px; font-weight: bold; color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; margin-bottom: 10px; display: inline-block;">操作指南</div>
+                <p style="color: #666; font-size: 15px; line-height: 1.8; margin: 0;">鼠标点击选中格子，键盘输入 <kbd>1</kbd>-<kbd>9</kbd> 数字。</p>
+            </div>
+
+            <div>
+                <div style="font-size: 16px; font-weight: bold; color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; margin-bottom: 10px; display: inline-block;">实验目标</div>
+                <p style="color: #666; font-size: 15px; line-height: 1.8; margin: 0;">填满所有空格，确保每行、每列、每个 3x3 宫内数字均不重复。<br><span style="color:#e74c3c; font-weight:bold;">※ 本局无步数限制</span></p>
+            </div>
+        </div>
+
+        <!-- 居中盘面 -->
+        <div style="grid-column: 2; display: flex; flex-direction: column; align-items: center;">
+            <table class="table table-striped" style="margin: 0; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
+                <tbody id="sudoku-board"></tbody>
+            </table>
+        </div>
+
+        <div style="grid-column: 3;"></div>
+    </div>
+
+    <!-- 调用外层公共库 -->
+    <script src="../shared_assets/js/jquery.min.js"></script>
+    <script src="../shared_assets/js/bootstrap.min.js"></script>
+    <script src="../shared_assets/js/hci-base.js"></script>
+    <!-- 数独游戏多加一行 sudoku.js -->
+    <!-- 调用自己文件夹的逻辑 -->
+    <script src="js/app.js"></script>
+</body>
+</html>

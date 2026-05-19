@@ -1,0 +1,150 @@
+/* Styles for the Sudoku.js demo page
+*/
+
+body {
+    padding-top: 60px;
+    padding-bottom: 40px;
+}
+
+.container-narrow {
+    /* Custom, narrow container */
+    margin: 0 auto;
+    max-width: 600px;
+ }
+
+#footer {
+    margin-top: 120px;    
+}
+
+#sudoku-board {
+    border: 2px solid black;
+}
+
+#sudoku-board td {
+    padding: 0px;
+    margin: 0px;
+}
+
+#sudoku-board input.square {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 0px;
+    width: 60px; /* 宽度微调 */
+    height: 60px; /* 高度调成一样，变成完美的正方形 */
+    padding: 0px;
+    font-size: 38px; /* 字体稍微缩一点，留出呼吸空间 */
+    text-align: center;
+}
+
+#sudoku-board .border-right {
+    border-right: 2px solid black;
+}
+
+#sudoku-board .border-bottom {
+    border-bottom: 2px solid black;
+}
+
+.green-text {
+    color: ForestGreen !important;
+}
+
+
+/* ========================================== */
+/* === HCI 实验控制面板与动画样式 === */
+/* ========================================== */
+
+#exp-control-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    gap: 10px;
+    font-family: sans-serif;
+}
+
+.exp-btn-placeholder {
+    width: 140px;
+    height: 40px;
+    background: #e9ecef;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.exp-btn {
+    width: 140px;
+    height: 40px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    display: none; /* 默认隐藏，思考期后显示 */
+    transition: background-color 0.2s, opacity 0.2s;
+}
+
+#exp-btn-undo {
+    background: #17a2b8;
+    color: #fff;
+}
+
+#exp-btn-hint {
+    background: #ffc107;
+    color: #000;
+}
+
+#exp-btn-skip {
+    background: #dc3545;
+    color: #fff;
+}
+
+#exp-btn-next {
+    background: #28a745;
+    color: #fff;
+    display: none;
+}
+
+.exp-btn:disabled {
+    background: #ccc !important;
+    color: #666 !important;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+#exp-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9998;
+    display: none;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+#exp-ai-text {
+    position: absolute;
+    top: 10%; /* 将位置从 50% 移到屏幕顶部往下 10% 的位置 */
+    left: 50%;
+    transform: translate(-50%, 0); /* 对应调整偏移 */
+    background: rgba(0, 0, 0, 0.85); /* 稍微增加一点透明度，以防万一 */
+    color: #fff;
+    padding: 15px 30px;
+    font-size: 24px;
+    border-radius: 8px;
+    display: none;
+    pointer-events: none;
+    white-space: nowrap; /* 防止文字意外折行 */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+#exp-btn-reset {
+    background: #6c757d;
+    color: #fff;
+}
+/* 灰色背景的重置按钮 */
