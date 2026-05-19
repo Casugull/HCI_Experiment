@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>中转大厅 - HCI 实验</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="shared_assets/ss/bootstrap.min.css" rel="stylesheet" />
+    <!-- 引入 LeanCloud SDK 用于真实云端排行榜 -->
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.13.2/dist/av-min.js"></script>
+    <!-- 引入 JSZip 用于数据打包 -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <style>
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-top: 30px;
+            padding-bottom: 50px;
+        }
+
+        .hub-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card-box {
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+
+        h3 {
+            color: #2c3e50;
+            font-weight: 800;
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            font-size: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 16px;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 5px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .resource-value {
+            font-weight: bold;
+            color: #dc3545;
+        }
+
+        .slot-machine {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .slot-display {
+            background: #343a40;
+            color: #ffc107;
+            font-size: 24px;
+            font-weight: 900;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            transition: 0.1s;
+        }
+
+        .btn-roll {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            background: #6f42c1;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+            .btn-roll:hover {
+                background: #59359a;
+            }
+
+        .btn-enter {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: none;
+            margin-top: 15px;
+        }
+
+            .btn-enter:hover {
+                background: #218838;
+            }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            color: #666;
+            font-size: 14px;
+        }
+
+        tr.me {
+            background-color: #e6f7ff;
+            font-weight: bold;
+        }
+
+        #finish-zone {
+            grid-column: span 2;
+            background: #d4edda;
+            border: 2px solid #28a745;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            display: none;
+            margin-top: 10px;
+        }
+
+        .btn-finish {
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(40, 167, 69, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hub-container">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="card-box">
+                <h3>👤 我的状态 (<span id="pid-text"></span>)</h3>
+                <div class="stat-item"><span>有效通关题数：</span><span class="stat-value" id="s-completed">0 局</span></div>
+                <div class="stat-item"><span>累计对局时间：</span><span class="stat-value" id="s-time">0 分钟</span></div>
+                <div class="stat-item"><span>总得分：</span><span class="stat-value" id="s-score">0 分</span></div>
+                <div style="margin-top: 20px; color: #dc3545; font-size: 14px;"><b>全局珍贵资源：</b></div>
+                <div class="stat-item"><span>剩余全局跳过 (单局限1次)：</span><span class="resource-value" id="s-skips">5 / 5</span></div>
+                <div class="stat-item"><span>剩余全局提示 (单局限1次)：</span><span class="resource-value" id="s-hints">3 / 3</span></div>
+            </div>
+
+            <div class="card-box slot-machine">
+                <h3>🎲 任务分发终端</h3>
+                <p style="color:#666; font-size:14px;">抽取不可反悔。抽取期间暂停数据采集。</p>
+                <div id="slot-display" class="slot-display">??? 等待抽取 ???</div>
+                <button id="btn-roll" class="btn-roll" onclick="startRoll()">抽取下一局任务</button>
+                <button id="btn-enter" class="btn-enter" onclick="enterGame()">进入对局</button>
+
+                <!-- 🕵️ 隐藏的开发者控制台 (普通被试看不见) -->
+                <div id="debug-zone" style="display: none; margin-top: 25px; padding-top: 15px; border-top: 2px dashed #ccc;">
+                    <p style="color:#dc3545; font-weight:bold; margin-bottom:10px;">🛠️ 管理员/开发者控制台</p>
+                    <button onclick="forceDownload()" style="width:100%; margin-bottom:10px; padding:10px; background:#17a2b8; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">📦 强制打包下载当前 IndexedDB 数据</button>
+                    <button onclick="forceClearData()" style="width:100%; padding:10px; background:#6c757d; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">🗑️ 一键清空所有数据并刷新</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-box">
+            <h3>🏆 全网实时排行榜</h3>
+            <table>
+                <thead><tr><th>排名</th><th>代号</th><th>通关数</th><th>得分</th></tr></thead>
+                <tbody id="lb-body">
+                    <tr><td colspan="4" style="text-align: center; color: #999;">正在连接云端卫星...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="finish-zone">
+            <h2 style="color: #155724; margin-top:0;">🎉 目标已达成！</h2>
+            <p style="color: #155724; font-size: 16px;">您已完成要求的局数或时间，可以提前结束实验并打包数据，或者继续游玩。</p>
+            <button class="btn-finish" onclick="finishExperiment()">⬇️ 结束实验并下载数据包</button>
+        </div>
+    </div>
+
+    <script>
+        const GAME_LIST = [
+            { id: "Sudoku", name: "数独 (Sudoku)", path: "Game1_Sudoku/index.html" },
+            { id: "LightsOut", name: "点灯 (Lights Out)", path: "Game2_LightsOut/index.html" },
+            { id: "EntroPipes", name: "转管道 (EntroPipes)", path: "Game3_Pipes/index.html" },
+            { id: "ColorFill", name: "溢彩画 (Color Fill)", path: "Game4_ColorFill/index.html" },
+            { id: "RotatablePuzzle", name: "旋转拼图 (Twiddle)", path: "Game5_Twiddle/index.html" }
+        ];
+        const LVL_NAMES = ["简单", "中等", "困难"];
+
+        let pid = localStorage.getItem("HCI_ParticipantID") || "Test_User";
+        let completed = parseInt(localStorage.getItem("HCI_CompletedGames")) || 0;
+        let timeSec = parseInt(localStorage.getItem("HCI_TotalTimeSec")) || 0;
+        let score = parseInt(localStorage.getItem("HCI_TotalScore")) || 0;
+        let skips = parseInt(localStorage.getItem("HCI_GlobalSkips")) || 5;
+        let hints = parseInt(localStorage.getItem("HCI_GlobalHints")) || 3;
+        let timeMin = Math.floor(timeSec / 60);
+        let selectedGameUrl = "";
+
+        document.getElementById("pid-text").innerText = pid;
+        document.getElementById("s-completed").innerText = completed + " 局";
+        document.getElementById("s-time").innerText = timeMin + " 分钟";
+        document.getElementById("s-score").innerText = score + " 分";
+        document.getElementById("s-skips").innerText = skips + " / 5";
+        document.getElementById("s-hints").innerText = hints + " / 3";
+
+        if (completed >= 12 || timeMin >= 60) {
+            document.getElementById("finish-zone").style.display = "block";
+        }
+
+        function startRoll() {
+            document.getElementById("btn-roll").disabled = true;
+            let display = document.getElementById("slot-display");
+            let counter = 0;
+            let interval = setInterval(() => {
+                let rndGame = GAME_LIST[Math.floor(Math.random() * GAME_LIST.length)];
+                display.innerText = rndGame.name;
+                counter++;
+                if (counter > 20) { clearInterval(interval); finalizeRoll(); }
+            }, 80);
+        }
+
+        function finalizeRoll() {
+            let finalGame = GAME_LIST[Math.floor(Math.random() * GAME_LIST.length)];
+            let savedLvl = localStorage.getItem("HCI_Level_" + finalGame.id);
+            let lvl = savedLvl !== null ? parseInt(savedLvl) : 0;
+            if (lvl > 2) lvl = 2;
+
+            document.getElementById("slot-display").innerText = `🎯 ${finalGame.name} - ${LVL_NAMES[lvl]}`;
+            document.getElementById("slot-display").style.background = "#28a745";
+            document.getElementById("slot-display").style.color = "#fff";
+            document.getElementById("btn-roll").style.display = "none";
+            document.getElementById("btn-enter").style.display = "block";
+            selectedGameUrl = finalGame.path;
+        }
+
+        function enterGame() { window.location.href = selectedGameUrl; }
+        function finishExperiment() { window.location.href = "finish.html"; }
+
+        // --- 真实云端排行榜 (LeanCloud) ---
+        const APP_ID = ""; // 替换
+        const APP_KEY = ""; // 替换
+        const SERVER_URL = ""; // 替换
+
+        function renderMockLeaderboard() {
+            let lb = document.getElementById("lb-body");
+            lb.innerHTML = `<tr class="me"><td>#</td><td>${pid} (你)</td><td>${completed}</td><td>${score}</td></tr>` +
+                `<tr><td>1</td><td>U_8832</td><td>14</td><td>85</td></tr>` +
+                `<tr><td>2</td><td>U_1092</td><td>11</td><td>60</td></tr>` +
+                `<tr><td>3</td><td>U_9912</td><td>8</td><td>42</td></tr>`;
+        }
+
+        if (APP_ID === "") {
+            console.warn("未配置 LeanCloud API，使用模拟排行榜。");
+            renderMockLeaderboard();
+        } else {
+            AV.init({ appId: APP_ID, appKey: APP_KEY, serverURL: SERVER_URL });
+            const RankObj = AV.Object.extend('HCI_Rank');
+
+            async function syncAndFetchRank() {
+                try {
+                    if (completed > 0) {
+                        let query = new AV.Query('HCI_Rank');
+                        query.equalTo('pid', pid);
+                        let myRecord = await query.first();
+                        if (myRecord) {
+                            myRecord.set('completed', completed);
+                            myRecord.set('score', score);
+                            await myRecord.save();
+                        } else {
+                            let newRecord = new RankObj();
+                            newRecord.set('pid', pid);
+                            newRecord.set('completed', completed);
+                            newRecord.set('score', score);
+                            await newRecord.save();
+                        }
+                    }
+
+                    let queryAll = new AV.Query('HCI_Rank');
+                    queryAll.addDescending('completed');
+                    queryAll.addDescending('score');
+                    queryAll.limit(10);
+                    let results = await queryAll.find();
+
+                    let lb = document.getElementById("lb-body");
+                    lb.innerHTML = "";
+                    results.forEach((record, index) => {
+                        let rPid = record.get('pid');
+                        let rComp = record.get('completed');
+                        let rScore = record.get('score');
+                        let trClass = (rPid === pid) ? 'class="me"' : '';
+                        let badge = (rPid === pid) ? " (你)" : "";
+                        lb.innerHTML += `<tr ${trClass}><td>${index + 1}</td><td>${rPid}${badge}</td><td>${rComp}</td><td>${rScore}</td></tr>`;
+                    });
+                } catch (error) { renderMockLeaderboard(); }
+            }
+            syncAndFetchRank();
+        }
+
+        // =====================================
+        // 测试专用：一键打包并下载分局 ZIP 数据
+        // =====================================
+        function forceDownload() {
+            let req = indexedDB.open("HCI_Experiment_DB", 1);
+            req.onsuccess = function (e) {
+                let db = e.target.result;
+                if (!db.objectStoreNames.contains("sessions")) { alert("本地数据库空空如也！"); return; }
+                let tx = db.transaction("sessions", "readonly");
+                let store = tx.objectStore("sessions");
+                store.getAll().onsuccess = function (ev) {
+                    let data = ev.target.result;
+                    if (data.length === 0) { alert("数据为空！"); return; }
+
+                    let zip = new JSZip();
+                    let folder = zip.folder(`DEBUG_HCI_Data_${pid}`);
+                    data.forEach((session, index) => {
+                        let fileName = `Round_${index + 1}_${session.game_name}_Level${session.level}_${session.status}.json`;
+                        folder.file(fileName, JSON.stringify(session, null, 2));
+                    });
+
+                    zip.generateAsync({ type: "blob" }).then(function (content) {
+                        let url = URL.createObjectURL(content);
+                        let a = document.createElement('a');
+                        a.href = url;
+                        a.download = `DEBUG_Data_${pid}.zip`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                };
+            };
+        }
+        // 页面加载时判断是否为管理员
+        if (localStorage.getItem("HCI_IsAdmin") === "true") {
+            document.getElementById("debug-zone").style.display = "block";
+        }
+
+        // =====================================
+        // 🛠️ 开发者专属：一键清空测试数据与缓存
+        // =====================================
+        function forceClearData() {
+            if (confirm("⚠️ 警告：这会彻底删除当前存在 IndexedDB 和 localStorage 里的所有实验数据！确定清空吗？")) {
+                let req = indexedDB.open("HCI_Experiment_DB", 1);
+                req.onsuccess = function (e) {
+                    let db = e.target.result;
+                    if (db.objectStoreNames.contains("sessions")) {
+                        let tx = db.transaction("sessions", "readwrite");
+                        tx.objectStore("sessions").clear();
+                    }
+                    localStorage.clear();
+                    alert("已彻底清空！将返回首页。");
+                    window.location.href = "index.html";
+                };
+            }
+        }
+    </script>
+</body>
+</html>

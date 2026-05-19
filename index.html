@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>HCI 实验入口 - 多模态求助行为研究</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="shared_assets/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container-box {
+            background: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h2 {
+            color: #2c3e50;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .consent-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #17a2b8;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .input-group {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+            .input-group input {
+                width: 100%;
+                padding: 12px;
+                font-size: 16px;
+                border: 2px solid #ddd;
+                border-radius: 6px;
+                box-sizing: border-box;
+                text-align: center;
+            }
+
+        .btn-exp {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 15px;
+        }
+
+        .btn-primary-exp {
+            background: #007bff;
+            color: #fff;
+        }
+
+            .btn-primary-exp:hover {
+                background: #0056b3;
+            }
+
+        .btn-secondary-exp {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+            .btn-secondary-exp:hover {
+                background: #dde2e6;
+            }
+    </style>
+</head>
+<body>
+
+    <div class="container-box">
+        <h2>HCI 实验：交互行为与策略预测</h2>
+
+        <div class="consent-box">
+            <b>📝 实验说明与隐私声明：</b><br>
+            1. 本实验包含数款益智小游戏，旨在研究人在面对困难时的策略与求助行为。<br>
+            2. <b>【实验模式】</b>下，系统将调用您的<b>摄像头捕捉面部特征数值</b>，并<b>记录网页内的键鼠轨迹</b>。所有数据仅存在您的浏览器本地，不保存任何画面，完全匿名且仅用于学术研究。<br>
+            3. 如您随时感到不适，可关闭网页退出。
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="participant_id" placeholder="请输入您的代号 (如 U001，如果不填则自动生成)" autocomplete="off">
+        </div>
+
+        <button class="btn-exp btn-primary-exp" onclick="startSystem('experiment')">✅ 同意声明，参与实验 (收集数据)</button>
+        <button class="btn-exp btn-secondary-exp" onclick="startSystem('play')">🎮 仅随便玩玩 (不收集任何数据)</button>
+    </div>
+
+    <script>
+        function startSystem(mode) {
+            let pid = document.getElementById('participant_id').value.trim();
+
+            let isAdmin = false;
+            if (pid.toUpperCase() === "ADMIN") {
+                isAdmin = true;
+                pid = "ADMIN_TEST";
+            } else if (!pid) {
+                pid = "U_" + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+            }
+
+            // 1. 清空 LocalStorage 缓存
+            localStorage.clear();
+            localStorage.setItem("HCI_ParticipantID", pid);
+            localStorage.setItem("HCI_Mode", mode);
+            localStorage.setItem("HCI_IsAdmin", isAdmin ? "true" : "false");
+
+            localStorage.setItem("HCI_GlobalHints", 3);
+            localStorage.setItem("HCI_GlobalSkips", 5);
+            localStorage.setItem("HCI_TotalTimeSec", 0);
+            localStorage.setItem("HCI_CompletedGames", 0);
+            localStorage.setItem("HCI_TotalScore", 0);
+
+            // 2. 强力清空 IndexedDB 历史残留数据 (防呆设计)
+            let req = indexedDB.open("HCI_Experiment_DB", 1);
+            req.onsuccess = function (e) {
+                let db = e.target.result;
+                if (db.objectStoreNames.contains("sessions")) {
+                    let tx = db.transaction("sessions", "readwrite");
+                    tx.objectStore("sessions").clear(); // 彻底焚毁上一个人的残留
+                }
+
+                // 3. 数据清空完毕后，再跳转页面
+                if (mode === 'experiment') {
+                    window.location.href = "calibration.html";
+                } else {
+                    window.location.href = "hub.html";
+                }
+            };
+
+            // 如果是第一次在这个电脑运行，没有数据库，也直接跳转
+            req.onupgradeneeded = function (e) {
+                let db = e.target.result;
+                if (!db.objectStoreNames.contains("sessions")) {
+                    db.createObjectStore("sessions", { autoIncrement: true });
+                }
+            };
+        }
+    </script>
+</body>
+</html>

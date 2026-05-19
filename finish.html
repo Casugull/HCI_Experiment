@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>实验结束 - HCI 数据导出</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="shared_assets/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <style>
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .finish-container {
+            background: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #28a745;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        .summary-box {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: left;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .btn-download {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 15px;
+        }
+
+            .btn-download:hover {
+                background: #0056b3;
+            }
+
+        /* 清空按钮的初始锁定样式 */
+        .btn-home {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            transition: 0.2s;
+        }
+
+            .btn-home:disabled {
+                background: #ccc;
+                color: #666;
+                cursor: not-allowed;
+            }
+
+            .btn-home.unlocked {
+                background: #dc3545;
+                color: white;
+                cursor: pointer;
+                animation: pop 0.3s ease-out;
+            }
+
+                .btn-home.unlocked:hover {
+                    background: #c82333;
+                }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0.95);
+            }
+
+            50% {
+                transform: scale(1.02);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="finish-container">
+        <h1>🎉 实验圆满结束！</h1>
+        <p style="color: #666; font-size: 16px; margin-bottom: 30px;">
+            非常感谢您参与本次人机交互实验！您的交互行为数据将为我们的学术研究提供巨大的帮助。
+        </p>
+
+        <div class="summary-box">
+            <b>📝 您的最终战报：</b><br><br>
+            👤 代号：<span id="f-pid" style="font-weight:bold; color:#007bff;"></span><br>
+            ✅ 通关题数：<span id="f-comp"></span> 局<br>
+            ⏱️ 对局时长：<span id="f-time"></span> 分钟<br>
+            🏆 最终得分：<span id="f-score"></span> 分<br>
+        </div>
+
+        <p style="color: #dc3545; font-weight: bold; font-size: 15px;">
+            👉 步骤 1：请点击下方蓝色按钮，下载您的实验数据包。<br>
+            👉 步骤 2：下载完成后，点击红色按钮清理数据即可退出。
+        </p>
+
+        <button id="btn-download" class="btn-download" onclick="exportData()">📦 第一步：一键打包下载实验数据 (ZIP)</button>
+        <!-- 默认锁定 disabled -->
+        <button id="btn-home" class="btn-home" onclick="returnToHome()" disabled>🔒 请先下载数据，再进行清理</button>
+    </div>
+
+    <script>
+        let pid = localStorage.getItem("HCI_ParticipantID") || "Unknown";
+        document.getElementById("f-pid").innerText = pid;
+        document.getElementById("f-comp").innerText = localStorage.getItem("HCI_CompletedGames") || 0;
+        document.getElementById("f-time").innerText = Math.floor((parseInt(localStorage.getItem("HCI_TotalTimeSec")) || 0) / 60);
+        document.getElementById("f-score").innerText = localStorage.getItem("HCI_TotalScore") || 0;
+
+        function exportData() {
+            let btnDownload = document.getElementById("btn-download");
+            btnDownload.innerText = "⏳ 正在拼装压缩包，请稍候...";
+            btnDownload.disabled = true;
+
+            let req = indexedDB.open("HCI_Experiment_DB", 1);
+            req.onsuccess = function (e) {
+                let db = e.target.result;
+                if (!db.objectStoreNames.contains("sessions")) {
+                    alert("未发现任何对局数据！可能您在纯游玩模式。");
+                    btnDownload.innerText = "📦 第一步：一键打包下载实验数据 (ZIP)";
+                    btnDownload.disabled = false;
+                    return;
+                }
+
+                let tx = db.transaction("sessions", "readonly");
+                let store = tx.objectStore("sessions");
+                let getAll = store.getAll();
+
+                getAll.onsuccess = function () {
+                    let data = getAll.result;
+                    if (data.length === 0) {
+                        alert("数据为空！");
+                        btnDownload.innerText = "📦 第一步：一键打包下载实验数据 (ZIP)";
+                        btnDownload.disabled = false;
+                        return;
+                    }
+
+                    let zip = new JSZip();
+                    let folder = zip.folder(`HCI_Data_${pid}`);
+
+                    data.forEach((session, index) => {
+                        let fileName = `Round_${index + 1}_${session.game_name}_Level${session.level}_${session.status}.json`;
+                        folder.file(fileName, JSON.stringify(session, null, 2));
+                    });
+
+                    zip.generateAsync({ type: "blob" }).then(function (content) {
+                        let url = URL.createObjectURL(content);
+                        let a = document.createElement('a');
+                        a.href = url;
+                        a.download = `HCI_Data_${pid}.zip`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+
+                        btnDownload.innerText = "✅ 数据包已生成下载！";
+                        alert("压缩包下载已触发！请确保保存成功并发送给主试。");
+
+                        // --- 核心防呆：解锁清空按钮 ---
+                        let btnHome = document.getElementById("btn-home");
+                        btnHome.disabled = false;
+                        btnHome.classList.add("unlocked");
+                        btnHome.innerText = "🗑️ 第二步：数据已保存，彻底清理并退出";
+                    });
+                };
+            };
+            req.onerror = function () {
+                alert("读取本地数据库失败！");
+                btnDownload.innerText = "📦 第一步：一键打包下载实验数据 (ZIP)";
+                btnDownload.disabled = false;
+            };
+        }
+
+        function returnToHome() {
+            if (confirm("确定要清理数据返回首页吗？请务必确保刚才的 ZIP 文件已经下载到了您的电脑里！")) {
+                let req = indexedDB.open("HCI_Experiment_DB", 1);
+                req.onsuccess = function (e) {
+                    let db = e.target.result;
+                    if (db.objectStoreNames.contains("sessions")) {
+                        let tx = db.transaction("sessions", "readwrite");
+                        tx.objectStore("sessions").clear();
+                    }
+                    localStorage.clear();
+                    window.location.href = "index.html";
+                };
+            }
+        }
+    </script>
+</body>
+</html>

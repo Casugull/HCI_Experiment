@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>硬件校准 - HCI 实验</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="shared_assets/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body { background-color: #f4f7f6; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .calib-container { background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 700px; width: 100%; text-align: center; }
+        .status-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; background: #fafafa; }
+        .status-badge { padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 13px; }
+        .badge-wait { background: #ffeeba; color: #856404; }
+        .badge-pass { background: #d4edda; color: #155724; }
+        .camera-box { position: relative; width: 160px; height: 120px; background: #000; border-radius: 8px; overflow: hidden; margin-top: 10px; }
+        video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        .mouse-target { width: 30px; height: 30px; background: #ff4d4f; border-radius: 50%; cursor: pointer; display: inline-block; transition: 0.1s; }
+        #btn-finish { width: 100%; padding: 15px; font-size: 18px; font-weight: bold; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; opacity: 0.5; pointer-events: none; margin-top: 20px; }
+        #btn-finish.active { opacity: 1; pointer-events: auto; }
+    </style>
+    <!-- MediaPipe 官方 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div class="calib-container">
+    <h2 style="margin-bottom: 25px;">硬件环境校准</h2>
+    <p style="color:#666; margin-bottom:20px;">请完成以下测试以确保数据能够正常采集。完成后即可进入大厅。</p>
+
+    <!-- 1. 摄像头测试 -->
+    <div class="status-card">
+        <div style="text-align: left;">
+            <b>📷 摄像头测试 (MediaPipe)</b><br>
+            <span style="font-size:12px; color:#888;">请允许浏览器使用摄像头。当画面中出现面部网格即为通过。</span>
+            <div class="camera-box">
+                <video id="input_video"></video>
+                <canvas id="output_canvas"></canvas>
+            </div>
+        </div>
+        <span id="cam-status" class="status-badge badge-wait">等待授权并加载AI...</span>
+    </div>
+
+    <!-- 2. 鼠标测试 -->
+    <div class="status-card">
+        <div style="text-align: left;">
+            <b>🖱️ 鼠标测试</b><br>
+            <span style="font-size:12px; color:#888;">请点击右侧跳动的红色小圆球。</span>
+        </div>
+        <div>
+            <div id="mouse-target" class="mouse-target"></div>
+            <span id="mouse-status" class="status-badge badge-wait" style="display:block; margin-top:5px;">未通过</span>
+        </div>
+    </div>
+
+    <!-- 3. 键盘测试 -->
+    <div class="status-card">
+        <div style="text-align: left;">
+            <b>⌨️ 键盘测试</b><br>
+            <span style="font-size:12px; color:#888;">请在键盘上按下【空格键】或【Enter键】。</span>
+        </div>
+        <span id="kb-status" class="status-badge badge-wait">未按下</span>
+    </div>
+
+    <button id="btn-finish" onclick="goToHub()">所有设备就绪，进入大厅</button>
+</div>
+
+<script>
+    let state = { cam: false, mouse: false, kb: false };
+
+    function checkAll() {
+        if (state.cam && state.mouse && state.kb) {
+            document.getElementById('btn-finish').classList.add('active');
+            document.getElementById('btn-finish').innerText = "✅ 所有设备就绪，进入大厅";
+        }
+    }
+
+    // 1. 键盘测试
+    document.addEventListener('keydown', (e) => {
+        if (!state.kb && (e.code === 'Space' || e.code === 'Enter')) {
+            state.kb = true;
+            let st = document.getElementById('kb-status');
+            st.className = "status-badge badge-pass"; st.innerText = "已通过 [√]";
+            checkAll();
+        }
+    });
+
+    // 2. 鼠标测试
+    const target = document.getElementById('mouse-target');
+    setInterval(() => {
+        if(state.mouse) return;
+        target.style.transform = `translate(${(Math.random()-0.5)*40}px, ${(Math.random()-0.5)*20}px)`;
+    }, 800);
+    target.addEventListener('click', () => {
+        state.mouse = true;
+        target.style.display = 'none';
+        let st = document.getElementById('mouse-status');
+        st.className = "status-badge badge-pass"; st.innerText = "已通过 [√]";
+        checkAll();
+    });
+
+    // 3. 摄像头 MediaPipe 测试
+    const videoElement = document.getElementById('input_video');
+    const canvasElement = document.getElementById('output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+
+    const faceMesh = new FaceMesh({locateFile: (file) => {
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+    }});
+
+    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+    
+    faceMesh.onResults((results) => {
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+            drawConnectors(canvasCtx, results.multiFaceLandmarks[0], FACEMESH_TESSELATION, {color: '#C0C0C070', lineWidth: 1});
+            if (!state.cam) {
+                state.cam = true;
+                let st = document.getElementById('cam-status');
+                st.className = "status-badge badge-pass"; st.innerText = "识别成功 [√]";
+                checkAll();
+            }
+        }
+        canvasCtx.restore();
+    });
+
+    const camera = new Camera(videoElement, {
+        onFrame: async () => { await faceMesh.send({image: videoElement}); },
+        width: 160, height: 120
+    });
+    camera.start();
+
+    // 4. 跳转
+    function goToHub() {
+        // 关闭摄像头灯，避免后台占用
+        if(camera) camera.stop();
+        window.location.href = "hub.html";
+    }
+</script>
+</body>
+</html>
