@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>HCI Experiment - 游戏名字</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 调用外层公共库 -->
+    <link href="../shared_assets/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- 调用自己文件夹的样式 -->
+    <link href="css/styles.css" rel="stylesheet" />
+</head>
+<body>
+    <div id="app-wrap" style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 40px; align-items: center; min-height: 100vh; padding-bottom: 12vh; box-sizing: border-box; width: 100%; max-width: 1400px; margin: 0 auto;">
+
+        <div style="grid-column: 1; justify-self: end; max-width: 380px; text-align: left;">
+            <h1 style="margin: 0 0 10px 0; color: #2c3e50; font-weight: 800; font-size: 2.2rem; letter-spacing: 1px;">溢彩画 (Color Fill)</h1>
+            <div id="level-indicator" style="display: inline-block; padding: 6px 16px; background: #e0f7fa; color: #00838f; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 25px;"></div>
+
+            <div style="margin-bottom: 25px;">
+                <div style="font-size: 16px; font-weight: bold; color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; margin-bottom: 10px; display: inline-block;">操作指南</div>
+                <p style="color: #666; font-size: 15px; line-height: 1.8; margin: 0;">鼠标选中色块区域，键盘按 <kbd>1</kbd>-<kbd>6</kbd> 将其染成对应的颜色。</p>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <div style="font-size: 16px; font-weight: bold; color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; margin-bottom: 10px; display: inline-block;">实验目标</div>
+                <p style="color: #666; font-size: 15px; line-height: 1.8; margin: 0;">通过吞并周围色块，让全盘变成顶部指示的<b>目标颜色</b>。</p>
+            </div>
+
+            <!-- 图例变成一个精致的小卡片 -->
+            <div style="padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                <b style="display:block; margin-bottom:12px; color: #2c3e50; font-size: 14px;">🎨 颜色快捷键：</b>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                    <span style="color:#ff4d4f; font-weight:bold;"><kbd style="background:#ff4d4f; color:#fff; border:none;">1</kbd> 红色</span>
+                    <span style="color:#1890ff; font-weight:bold;"><kbd style="background:#1890ff; color:#fff; border:none;">2</kbd> 蓝色</span>
+                    <span style="color:#fadb14; font-weight:bold;"><kbd style="background:#fadb14; color:#333; border:none;">3</kbd> 黄色</span>
+                    <span style="color:#52c41a; font-weight:bold;"><kbd style="background:#52c41a; color:#fff; border:none;">4</kbd> 绿色</span>
+                    <span style="color:#722ed1; font-weight:bold;"><kbd style="background:#722ed1; color:#fff; border:none;">5</kbd> 紫色</span>
+                    <span style="color:#fa8c16; font-weight:bold;"><kbd style="background:#fa8c16; color:#fff; border:none;">6</kbd> 橙色</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="grid-column: 2; display: flex; flex-direction: column; align-items: center;">
+            <h3 id="step-display" style="font-size: 18px; font-weight: bold; background: #fff; border: 2px solid #e2e8f0; padding: 10px 24px; border-radius: 8px; margin: 0 0 20px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.05);"></h3>
+            <table id="sudoku-board" style="border-radius: 8px; overflow: hidden;"></table>
+        </div>
+
+        <div style="grid-column: 3;"></div>
+    </div>
+
+    <!-- 调用外层公共库 -->
+    <script src="../shared_assets/js/jquery.min.js"></script>
+    <script src="../shared_assets/js/bootstrap.min.js"></script>
+    <script src="../shared_assets/js/hci-base.js"></script>
+    <!-- 数独游戏多加一行 sudoku.js -->
+    <!-- 调用自己文件夹的逻辑 -->
+    <script src="js/app.js"></script>
+</body>
+</html>

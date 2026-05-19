@@ -1,0 +1,64 @@
+/* ========================================== */
+/* === ColorFill (色块填充) 专属样式 === */
+/* ========================================== */
+
+body {
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-color: #fcfcfc;
+}
+
+#sudoku-board {
+    margin: 0 auto;
+    border-collapse: collapse;
+    background: #fff;
+    border: 3px solid #333;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+
+    #sudoku-board td {
+        padding: 0;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+
+/* 颜色方块基础样式 */
+.color-cell {
+    position: relative;
+    cursor: crosshair;
+    box-sizing: border-box;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+/* 6种基本颜色 */
+.color-1 {
+    background-color: #ff4d4f;
+}
+/* 红 */
+.color-2 {
+    background-color: #1890ff;
+}
+/* 蓝 */
+.color-3 {
+    background-color: #fadb14;
+}
+/* 黄 */
+.color-4 {
+    background-color: #52c41a;
+}
+/* 绿 */
+.color-5 {
+    background-color: #722ed1;
+}
+/* 紫 */
+.color-6 {
+    background-color: #fa8c16;
+}
+/* 橙 */
+
+/* 鼠标选中连通块时的样式：加粗白边 + 悬浮感 */
+.selected-region {
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,0.9), 0 0 8px rgba(0,0,0,0.5);
+    transform: scale(0.92);
+    z-index: 2;
+    border-radius: 4px;
+}
