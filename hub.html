@@ -252,28 +252,61 @@
         function startRoll() {
             document.getElementById("btn-roll").disabled = true;
             let display = document.getElementById("slot-display");
+
+            // --- 核心逻辑 1：按难度层级（Tier）构建当前可抽取的游戏池 ---
+            let gameLevels = {};
+            let minTier = 3; // 寻找当前全局最低的难度层级
+
+            GAME_LIST.forEach(g => {
+                let lvl = parseInt(localStorage.getItem("HCI_Level_" + g.id)) || 0;
+                gameLevels[g.id] = lvl;
+                if (lvl < minTier) minTier = lvl;
+            });
+
+            // 如果最低层级已经是 3，说明 5款游戏的 3个难度全通关了！题库耗尽！
+            if (minTier >= 3) {
+                display.innerText = "🎉 所有题库已耗尽！";
+                document.getElementById("finish-zone").style.display = "block";
+                return;
+            }
+
+            // 把所有当前处于最低难度的游戏捞出来，放入奖池
+            let pool = GAME_LIST.filter(g => gameLevels[g.id] === minTier);
+
+            // --- 核心逻辑 2：防连续重复机制（Anti-Repeat） ---
+            let lastGameId = localStorage.getItem("HCI_LastPlayedGame");
+            // 如果奖池里还有超过 1 个游戏，就绝不让玩家连续玩同一个游戏（尤其是刚跳过的）
+            if (pool.length > 1 && lastGameId) {
+                pool = pool.filter(g => g.id !== lastGameId);
+            }
+
+            // --- 核心逻辑 3：从最终奖池里随机抽一个 ---
+            let finalGame = pool[Math.floor(Math.random() * pool.length)];
+            let finalLvl = gameLevels[finalGame.id];
+
+            // 记录本次抽取的游戏，供下次防重使用
+            localStorage.setItem("HCI_LastPlayedGame", finalGame.id);
+
+            // 炫酷滚动动画
             let counter = 0;
             let interval = setInterval(() => {
                 let rndGame = GAME_LIST[Math.floor(Math.random() * GAME_LIST.length)];
                 display.innerText = rndGame.name;
                 counter++;
-                if (counter > 20) { clearInterval(interval); finalizeRoll(); }
+                if (counter > 20) {
+                    clearInterval(interval);
+                    // 动画结束，定格在真实抽中的游戏上
+                    display.innerText = `🎯 ${finalGame.name} - ${LVL_NAMES[finalLvl]}`;
+                    display.style.background = "#28a745";
+                    display.style.color = "#fff";
+                    document.getElementById("btn-roll").style.display = "none";
+                    document.getElementById("btn-enter").style.display = "block";
+                    selectedGameUrl = finalGame.path;
+                }
             }, 80);
         }
 
-        function finalizeRoll() {
-            let finalGame = GAME_LIST[Math.floor(Math.random() * GAME_LIST.length)];
-            let savedLvl = localStorage.getItem("HCI_Level_" + finalGame.id);
-            let lvl = savedLvl !== null ? parseInt(savedLvl) : 0;
-            if (lvl > 2) lvl = 2;
-
-            document.getElementById("slot-display").innerText = `🎯 ${finalGame.name} - ${LVL_NAMES[lvl]}`;
-            document.getElementById("slot-display").style.background = "#28a745";
-            document.getElementById("slot-display").style.color = "#fff";
-            document.getElementById("btn-roll").style.display = "none";
-            document.getElementById("btn-enter").style.display = "block";
-            selectedGameUrl = finalGame.path;
-        }
+        // (注意：原来的 finalizeRoll() 函数可以删掉了，因为逻辑已经合并进 startRoll 里面了)
 
         function enterGame() { window.location.href = selectedGameUrl; }
         function finishExperiment() { window.location.href = "finish.html"; }
